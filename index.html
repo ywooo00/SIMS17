@@ -1,0 +1,946 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>매뉴얼 관리</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{
+     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    /* 커스텀 스크롤바 */
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+      background: #94a3b8;
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="h-screen flex flex-col">
+    <!-- 헤더 -->
+    <div class="bg-white border-b border-gray-200 px-6 py-4 shrink-0">
+      <div class="flex items-center justify-between">
+        <h1 class="text-xl font-bold text-gray-900">매뉴얼 관리</h1>
+        <div class="text-sm text-gray-500">
+          HOME &gt; 관리자 &gt; 매뉴얼관리 &gt; 
+          <span class="font-medium text-gray-900" id="breadcrumb-tab">사용자매뉴얼</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 탭 -->
+    <div class="bg-white border-b border-gray-200 px-6 shrink-0">
+      <div class="flex">
+        <button
+          onclick="switchTab('user')"
+          id="tab-user"
+          class="px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 transition-colors"
+        >
+          사용자 매뉴얼
+          <span class="ml-2 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-600" id="count-user">17</span>
+        </button>
+        <button
+          onclick="switchTab('service')"
+          id="tab-service"
+          class="px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors"
+        >
+          서비스 매뉴얼
+          <span class="ml-2 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500" id="count-service">15</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- 검색 조건 -->
+    <div class="bg-white border-b border-gray-200 px-6 py-4 shrink-0">
+      <div class="bg-gray-50 rounded-lg border border-gray-200 p-4">
+        <div class="grid grid-cols-5 gap-4 mb-3">
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">제조사</label>
+            <select
+              id="search-manufacturer"
+              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              onchange="applyFilters()"
+            >
+              <option value="">전체</option>
+              <option value="T G.">T G.</option>
+              <option value="EPSON">EPSON</option>
+              <option value="Samsung">Samsung</option>
+              <option value="LG">LG</option>
+              <option value="Huawei">Huawei</option>
+              <option value="ASUS">ASUS</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">매뉴얼분류</label>
+            <select
+              id="search-category"
+              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              onchange="updateSubCategories(); applyFilters();"
+            >
+              <option value="">전체</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">매뉴얼종류</label>
+            <select
+              id="search-subcategory"
+              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              onchange="applyFilters()"
+              disabled
+            >
+              <option value="">전체</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">정렬</label>
+            <select
+              id="sort-order"
+              class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+              onchange="applyFilters()"
+            >
+              <option value="desc">등록일자 최신순</option>
+              <option value="asc">등록일자 오래된순</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs text-gray-500 mb-1">검색</label>
+            <div class="relative">
+              <input
+                type="text"
+                id="search-keyword"
+                placeholder="자재번호, 제목, 키워드..."
+                class="w-full border border-gray-300 rounded px-3 py-2 pl-9 text-sm focus:ring-2 focus:ring-blue-500"
+                oninput="applyFilters()"
+              />
+              <svg class="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+          </div>
+        </div>
+        <div class="flex justify-end">
+          <button
+            onclick="resetSearch()"
+            class="flex items-center gap-1 px-3 py-1.5 text-sm text-gray-600 border border-gray-300 rounded hover:bg-gray-100"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            초기화
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 메인 컨텐츠 -->
+    <div class="flex flex-1 overflow-hidden">
+      <!-- 왼쪽: 매뉴얼 목록 -->
+      <div id="list-panel" class="w-full bg-white flex flex-col h-full transition-all">
+        <!-- 목록 헤더 -->
+        <div class="px-6 py-3 border-b border-gray-200 flex items-center justify-between shrink-0">
+          <div class="flex items-center gap-4">
+            <h2 class="font-semibold text-gray-800 flex items-center gap-2">
+              <span class="w-2 h-2 bg-blue-500 rounded-full"></span>
+              <span id="list-title">사용자 매뉴얼</span> 목록
+            </h2>
+            <span class="text-sm text-gray-500">총 <span id="total-count">17</span>건</span>
+          </div>
+          <div class="flex items-center gap-2">
+            <button
+              onclick="deleteSelected()"
+              id="delete-btn"
+              class="px-3 py-1.5 border border-gray-300 text-gray-400 rounded text-xs font-medium"
+            >
+              삭제 (<span id="selected-count">0</span>)
+            </button>
+            <button
+              onclick="openDetailPanel(null)"
+              class="px-3 py-1.5 bg-blue-500 text-white rounded text-xs font-medium hover:bg-blue-600"
+            >
+              + 신규등록
+            </button>
+          </div>
+        </div>
+
+        <!-- 테이블 -->
+        <div class="flex-1 overflow-y-auto custom-scrollbar">
+          <table class="w-full text-sm">
+            <thead class="bg-gray-50 sticky top-0">
+              <tr>
+                <th class="w-10 py-3 px-3 border-b border-gray-200">
+                  <input
+                    type="checkbox"
+                    id="select-all"
+                    onchange="toggleSelectAll()"
+                    class="w-4 h-4 rounded"
+                  />
+                </th>
+                <th class="py-3 px-3 text-left text-gray-600 border-b w-20">제조업체</th>
+                <th class="py-3 px-3 text-left text-gray-600 border-b w-28">매뉴얼분류</th>
+                <th class="py-3 px-3 text-left text-gray-600 border-b w-24">매뉴얼종류</th>
+                <th class="py-3 px-3 text-left text-gray-600 border-b w-24">자재번호</th>
+                <th class="py-3 px-3 text-left text-gray-600 border-b">제목</th>
+                <th class="py-3 px-3 text-center text-gray-600 border-b w-20">PDF</th>
+              </tr>
+            </thead>
+            <tbody id="manual-tbody">
+              <!-- 동적으로 생성됨 -->
+            </tbody>
+          </table>
+
+          <!-- 빈 상태 -->
+          <div id="empty-state" class="hidden flex items-center justify-center h-40 text-gray-400">
+            <div class="text-center">
+              <svg class="w-12 h-12 mx-auto mb-2 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              <p class="text-sm">검색 결과가 없습니다</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- 페이지네이션 -->
+        <div id="pagination-container" class="px-6 py-3 border-t border-gray-200 flex items-center justify-between bg-gray-50 shrink-0">
+          <span class="text-xs text-gray-500" id="pagination-info">1-15 / 17건</span>
+          <div class="flex items-center gap-1" id="pagination-buttons">
+            <!-- 동적으로 생성됨 -->
+          </div>
+        </div>
+      </div>
+
+      <!-- 오른쪽: 상세/편집 패널 -->
+      <div id="detail-panel" class="hidden w-1/3 bg-gray-50 border-l border-gray-200 flex flex-col h-full">
+        <!-- 패널 헤더 -->
+        <div class="bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
+          <div>
+            <h2 class="font-bold text-gray-800" id="detail-title">매뉴얼 수정</h2>
+            <p class="text-sm text-gray-500 truncate max-w-[250px]" id="detail-subtitle"></p>
+          </div>
+          <button
+            onclick="closeDetailPanel()"
+            class="w-8 h-8 rounded-full hover:bg-gray-100 flex items-center justify-center text-gray-400"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- 패널 바디 -->
+        <div class="flex-1 overflow-y-auto p-6 space-y-4 custom-scrollbar">
+          <!-- 기본 정보 -->
+          <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span class="w-1 h-4 bg-blue-500 rounded"></span>
+              기본 정보
+            </h3>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">제조사 <span class="text-red-500">*</span></label>
+                <select
+                  id="detail-manufacturer"
+                  class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">선택</option>
+                  <option value="T G.">T G.</option>
+                  <option value="EPSON">EPSON</option>
+                  <option value="Samsung">Samsung</option>
+                  <option value="LG">LG</option>
+                  <option value="Huawei">Huawei</option>
+                  <option value="ASUS">ASUS</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">제목 <span class="text-red-500">*</span></label>
+                <input
+                  type="text"
+                  id="detail-title-input"
+                  placeholder="매뉴얼 제목을 입력하세요"
+                  class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- 분류 정보 -->
+          <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span class="w-1 h-4 bg-green-500 rounded"></span>
+              분류 정보
+            </h3>
+            <div class="space-y-3">
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">매뉴얼분류 <span class="text-red-500">*</span></label>
+                <select
+                  id="detail-category"
+                  class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                  onchange="updateDetailSubCategories()"
+                >
+                  <option value="">선택</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">매뉴얼종류</label>
+                <select
+                  id="detail-subcategory"
+                  class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                  disabled
+                >
+                  <option value="">선택</option>
+                </select>
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">자재코드</label>
+                <input
+                  type="text"
+                  id="detail-materialcode"
+                  placeholder="자재코드 입력 (선택)"
+                  class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+              <div>
+                <label class="block text-xs text-gray-500 mb-1">검색어</label>
+                <input
+                  type="text"
+                  id="detail-keyword"
+                  placeholder="검색 키워드 (선택)"
+                  class="w-full border border-gray-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+            </div>
+          </div>
+
+          <!-- PDF 파일 -->
+          <div class="bg-white rounded-lg border border-gray-200 p-4">
+            <h3 class="text-sm font-semibold text-gray-700 mb-3 flex items-center gap-2">
+              <span class="w-1 h-4 bg-purple-500 rounded"></span>
+              PDF 파일
+            </h3>
+            <div class="space-y-3">
+              <div id="pdf-file-display" class="hidden flex items-center justify-between bg-gray-50 rounded p-3 border border-gray-200">
+                <div class="flex items-center gap-2">
+                  <svg class="w-5 h-5 text-red-500" fill="currentColor" viewBox="0 0 20 20">
+                    <path fill-rule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clip-rule="evenodd" />
+                  </svg>
+                  <span class="text-sm text-gray-700" id="pdf-filename"></span>
+                </div>
+                <button
+                  onclick="removePdfFile()"
+                  class="px-2 py-1 text-xs text-red-500 hover:bg-red-50 rounded border border-red-200"
+                >
+                  삭제
+                </button>
+              </div>
+              <div id="pdf-empty" class="text-center py-4 text-gray-400 text-sm border border-dashed border-gray-300 rounded">
+                등록된 PDF 파일이 없습니다
+              </div>
+              <label class="block">
+                <span class="inline-flex items-center px-4 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600 cursor-pointer">
+                  파일 선택
+                  <input type="file" class="hidden" accept=".pdf" onchange="handleFileSelect(event)" />
+                </span>
+                <span class="ml-2 text-xs text-gray-400">PDF 파일만 업로드 가능</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <!-- 패널 푸터 -->
+        <div class="bg-white border-t border-gray-200 px-6 py-4 flex items-center justify-between shrink-0">
+          <button
+            id="detail-delete-btn"
+            onclick="deleteCurrentManual()"
+            class="hidden px-4 py-2 border border-red-500 text-red-500 rounded text-sm font-medium hover:bg-red-50"
+          >
+            삭제
+          </button>
+          <div id="detail-delete-placeholder"></div>
+          <div class="flex gap-2">
+            <button
+              onclick="closeDetailPanel()"
+              class="px-4 py-2 border border-gray-300 text-gray-700 rounded text-sm font-medium hover:bg-gray-50"
+            >
+              취소
+            </button>
+            <button
+              id="detail-save-btn"
+              onclick="saveManual()"
+              class="px-6 py-2 bg-blue-500 text-white rounded text-sm font-medium hover:bg-blue-600"
+            >
+              등록
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 데이터
+    const userManuals = [
+      { id: 1, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '116238', title: '116238 TGV-VANTA 32 적용', keyword: 'VANTA', pdfFile: '116238.pdf', createdAt: '2024-01-15' },
+      { id: 2, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '', title: 'Pop-Pro 비디오 카드 적용', keyword: '', pdfFile: 'pop_pro.pdf', createdAt: '2024-01-14' },
+      { id: 3, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '110314', title: '110314 TGV-VOODOO 3 적용', keyword: 'VOODOO', pdfFile: '110314.pdf', createdAt: '2024-01-13' },
+      { id: 4, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '', title: 'MGA Millennium 카드 적용', keyword: 'MGA', pdfFile: 'mga.pdf', createdAt: '2024-01-12' },
+      { id: 5, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '', title: '드림비디오 S/SN 적용', keyword: '', pdfFile: 'dream.pdf', createdAt: '2024-01-11' },
+      { id: 6, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '118628', title: '118628 TGV-GEFORCE2 MX 적용', keyword: 'GEFORCE', pdfFile: '118628.pdf', createdAt: '2024-01-10' },
+      { id: 7, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '120515', title: '120515 TGV-GEFORCE2 MX 적용', keyword: 'GEFORCE', pdfFile: '120515.pdf', createdAt: '2024-01-09' },
+      { id: 8, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '121557', title: '121557 TGV-TNT2 M64 적용', keyword: 'TNT2', pdfFile: '121557.pdf', createdAt: '2024-01-08' },
+      { id: 9, manufacturer: 'T G.', category: '시스템', subCategory: 'ODD', materialCode: '131957', title: '131957 CD-RW 드라이브', keyword: 'CD-RW', pdfFile: '131957.pdf', createdAt: '2024-01-07' },
+      { id: 10, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '110177', title: '110177 TGV-VANTA 32 적용', keyword: 'VANTA', pdfFile: '110177.pdf', createdAt: '2024-01-06' },
+      { id: 11, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '113302', title: '113302 TGV-TNT2 PRO 적용', keyword: 'TNT2', pdfFile: '113302.pdf', createdAt: '2024-01-05' },
+      { id: 12, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '107511', title: '107511 TGV-TRIO 64V2 적용', keyword: 'TRIO', pdfFile: '107511.pdf', createdAt: '2024-01-04' },
+      { id: 13, manufacturer: 'T G.', category: '시스템', subCategory: '본체', materialCode: '', title: 'Cy1000 TG 이전 모델 (CyberNex 1000)', keyword: 'CyberNex', pdfFile: 'cy1000.pdf', createdAt: '2024-01-03' },
+      { id: 14, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '118902', title: '118902 TGV-PRO TURBO 적용', keyword: 'TURBO', pdfFile: '118902.pdf', createdAt: '2024-01-02' },
+      { id: 15, manufacturer: 'T G.', category: '시스템', subCategory: '비디오', materialCode: '116237', title: '116237 TGV-TNT2 PRO 적용', keyword: 'TNT2', pdfFile: '116237.pdf', createdAt: '2024-01-01' },
+      { id: 16, manufacturer: 'EPSON', category: '프린터', subCategory: '잉크젯', materialCode: 'EP001', title: 'EPSON L3150 사용자 매뉴얼', keyword: 'L3150', pdfFile: 'ep_l3150.pdf', createdAt: '2024-02-01' },
+      { id: 17, manufacturer: 'Samsung', category: '모니터', subCategory: '모니터', materialCode: 'SM001', title: 'Samsung 27인치 모니터 매뉴얼', keyword: '27인치', pdfFile: 'sm_27.pdf', createdAt: '2024-02-02' }
+    ];
+
+    const serviceManuals = [
+      { id: 101, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'CM 719B/719BF 서비스 매뉴얼', keyword: '719B', pdfFile: '719B_719BFsvc.pdf', createdAt: '2024-01-15' },
+      { id: 102, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TGL 171G/D 서비스 매뉴얼', keyword: 'TGL171', pdfFile: 'tgl171.pdf', createdAt: '2024-01-14' },
+      { id: 103, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TGL 172G 서비스 매뉴얼', keyword: 'TGL172', pdfFile: 'tgl172.pdf', createdAt: '2024-01-13' },
+      { id: 104, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TGL 173G 서비스 매뉴얼', keyword: 'TGL173', pdfFile: 'tgl173.pdf', createdAt: '2024-01-12' },
+      { id: 105, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG 5480CX 서비스 매뉴얼', keyword: '5480CX', pdfFile: 'tg5480cx.pdf', createdAt: '2024-01-11' },
+      { id: 106, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG 5650S 서비스 매뉴얼', keyword: '5650S', pdfFile: 'tg5650s.pdf', createdAt: '2024-01-10' },
+      { id: 107, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG 5690CX 서비스 매뉴얼', keyword: '5690CX', pdfFile: 'tg5690cx.pdf', createdAt: '2024-01-09' },
+      { id: 108, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG 5692D 서비스 매뉴얼', keyword: '5692D', pdfFile: 'tg5692d.pdf', createdAt: '2024-01-08' },
+      { id: 109, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG 7700C 서비스 매뉴얼', keyword: '7700C', pdfFile: 'tg7700c.pdf', createdAt: '2024-01-07' },
+      { id: 110, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG 7701CF 서비스 매뉴얼', keyword: '7701CF', pdfFile: 'tg7701cf.pdf', createdAt: '2024-01-06' },
+      { id: 111, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG 7701SF 서비스 매뉴얼', keyword: '7701SF', pdfFile: 'tg7701sf.pdf', createdAt: '2024-01-05' },
+      { id: 112, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG 7702G (Rev.B) 서비스 매뉴얼', keyword: '7702G', pdfFile: 'tg7702g.pdf', createdAt: '2024-01-04' },
+      { id: 113, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG 7702GF,NR170F Rev.B 서비스 매뉴얼', keyword: '7702GF', pdfFile: 'tg7702gf.pdf', createdAt: '2024-01-03' },
+      { id: 114, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG A7705F 서비스 매뉴얼', keyword: 'A7705F', pdfFile: 'tga7705f.pdf', createdAt: '2024-01-02' },
+      { id: 115, manufacturer: 'T G.', category: '서비스매뉴얼', subCategory: '모니터', materialCode: '', title: 'TG-3800 서비스 매뉴얼', keyword: '3800', pdfFile: 'tg3800.pdf', createdAt: '2024-01-01' }
+    ];
+
+    const userCategories = ['시스템', '노트북', '모니터', '프린터', '서버', 'PDA'];
+    const serviceCategories = ['서비스매뉴얼', '기술자료', '설치가이드'];
+
+    const subCategories = {
+      '시스템': ['비디오', 'ODD', '본체', '메인보드', '메모리'],
+      '노트북': ['노트북전체', '배터리', '어댑터'],
+      '모니터': ['모니터'],
+      '프린터': ['레이저', '잉크젯', '복합기'],
+      '서버': ['서버전체', '랙서버'],
+      'PDA': ['PDA전체'],
+      '서비스매뉴얼': ['모니터', '시스템', '노트북', '프린터'],
+      '기술자료': ['회로도', '부품리스트'],
+      '설치가이드': ['설치가이드']
+    };
+
+    // 상태
+    let activeTab = 'user';
+    let currentPage = 1;
+    const ITEMS_PER_PAGE = 15;
+    let selectedRows = [];
+    let currentManual = null;
+
+    // 초기화
+    function init() {
+      updateCategoryOptions();
+      applyFilters();
+    }
+
+    // 탭 전환
+    function switchTab(tab) {
+      activeTab = tab;
+      currentPage = 1;
+      selectedRows = [];
+      currentManual = null;
+      
+      // UI 업데이트
+      document.getElementById('tab-user').className = tab === 'user' 
+        ? 'px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 transition-colors'
+        : 'px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors';
+      
+      document.getElementById('tab-service').className = tab === 'service'
+        ? 'px-6 py-3 text-sm font-medium border-b-2 border-blue-500 text-blue-600 transition-colors'
+        : 'px-6 py-3 text-sm font-medium border-b-2 border-transparent text-gray-500 hover:text-gray-700 transition-colors';
+      
+      document.getElementById('count-user').className = tab === 'user'
+        ? 'ml-2 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-600'
+        : 'ml-2 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500';
+      
+      document.getElementById('count-service').className = tab === 'service'
+        ? 'ml-2 px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-600'
+        : 'ml-2 px-2 py-0.5 rounded-full text-xs bg-gray-100 text-gray-500';
+      
+      document.getElementById('breadcrumb-tab').textContent = tab === 'user' ? '사용자매뉴얼' : '서비스매뉴얼';
+      document.getElementById('list-title').textContent = tab === 'user' ? '사용자 매뉴얼' : '서비스 매뉴얼';
+      
+      // 검색 초기화
+      resetSearch();
+      closeDetailPanel();
+      updateCategoryOptions();
+    }
+
+    // 카테고리 옵션 업데이트
+    function updateCategoryOptions() {
+      const categories = activeTab === 'user' ? userCategories : serviceCategories;
+      const categorySelect = document.getElementById('search-category');
+      const detailCategorySelect = document.getElementById('detail-category');
+      
+      categorySelect.innerHTML = '<option value="">전체</option>';
+      detailCategorySelect.innerHTML = '<option value="">선택</option>';
+      
+      categories.forEach(cat => {
+        categorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+        detailCategorySelect.innerHTML += `<option value="${cat}">${cat}</option>`;
+      });
+      
+      document.getElementById('search-subcategory').innerHTML = '<option value="">전체</option>';
+      document.getElementById('search-subcategory').disabled = true;
+    }
+
+    // 하위 카테고리 업데이트
+    function updateSubCategories() {
+      const category = document.getElementById('search-category').value;
+      const subCategorySelect = document.getElementById('search-subcategory');
+      
+      if (category && subCategories[category]) {
+        subCategorySelect.disabled = false;
+        subCategorySelect.innerHTML = '<option value="">전체</option>';
+        subCategories[category].forEach(sub => {
+          subCategorySelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+        });
+      } else {
+        subCategorySelect.disabled = true;
+        subCategorySelect.innerHTML = '<option value="">전체</option>';
+      }
+    }
+
+    // 상세 패널 하위 카테고리 업데이트
+    function updateDetailSubCategories() {
+      const category = document.getElementById('detail-category').value;
+      const subCategorySelect = document.getElementById('detail-subcategory');
+      
+      if (category && subCategories[category]) {
+        subCategorySelect.disabled = false;
+        subCategorySelect.innerHTML = '<option value="">선택</option>';
+        subCategories[category].forEach(sub => {
+          subCategorySelect.innerHTML += `<option value="${sub}">${sub}</option>`;
+        });
+      } else {
+        subCategorySelect.disabled = true;
+        subCategorySelect.innerHTML = '<option value="">선택</option>';
+        subCategorySelect.value = '';
+      }
+    }
+
+    // 필터 적용
+    function applyFilters() {
+      const manuals = activeTab === 'user' ? userManuals : serviceManuals;
+      const manufacturer = document.getElementById('search-manufacturer').value;
+      const category = document.getElementById('search-category').value;
+      const subCategory = document.getElementById('search-subcategory').value;
+      const keyword = document.getElementById('search-keyword').value.toLowerCase();
+      const sortOrder = document.getElementById('sort-order').value;
+      
+      // 필터링
+      let filtered = manuals.filter(manual => {
+        const matchManufacturer = !manufacturer || manual.manufacturer === manufacturer;
+        const matchCategory = !category || manual.category === category;
+        const matchSubCategory = !subCategory || manual.subCategory === subCategory;
+        const matchKeyword = !keyword ||
+          manual.title.toLowerCase().includes(keyword) ||
+          manual.materialCode.toLowerCase().includes(keyword) ||
+          manual.keyword.toLowerCase().includes(keyword);
+        return matchManufacturer && matchCategory && matchSubCategory && matchKeyword;
+      });
+      
+      // 정렬
+      filtered.sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      });
+      
+      // 페이지 리셋
+      currentPage = 1;
+      
+      renderTable(filtered);
+      renderPagination(filtered);
+      updateTotalCount(filtered.length);
+    }
+
+    // 테이블 렌더링
+    function renderTable(filteredManuals) {
+      const tbody = document.getElementById('manual-tbody');
+      const emptyState = document.getElementById('empty-state');
+      
+      const totalPages = Math.ceil(filteredManuals.length / ITEMS_PER_PAGE);
+      const startIdx = (currentPage - 1) * ITEMS_PER_PAGE;
+      const endIdx = startIdx + ITEMS_PER_PAGE;
+      const pageManuals = filteredManuals.slice(startIdx, endIdx);
+      
+      if (pageManuals.length === 0) {
+        tbody.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      
+      emptyState.classList.add('hidden');
+      
+      tbody.innerHTML = pageManuals.map(manual => `
+        <tr
+          onclick="selectManual(${manual.id})"
+          class="border-b border-gray-100 cursor-pointer transition-colors ${
+            currentManual?.id === manual.id ? 'bg-blue-50' : 'hover:bg-gray-50'
+          }"
+        >
+          <td class="py-3 px-3 text-center" onclick="event.stopPropagation()">
+            <input
+              type="checkbox"
+              ${selectedRows.includes(manual.id) ? 'checked' : ''}
+              onchange="toggleRow(${manual.id})"
+              class="w-4 h-4 rounded"
+            />
+          </td>
+          <td class="py-3 px-3 text-gray-600">${manual.manufacturer}</td>
+          <td class="py-3 px-3 text-gray-600">${manual.category}</td>
+          <td class="py-3 px-3 text-gray-600">${manual.subCategory}</td>
+          <td class="py-3 px-3 text-gray-500 font-mono text-xs">
+            ${manual.materialCode || '<span class="text-gray-300">-</span>'}
+          </td>
+          <td class="py-3 px-3">
+            <p class="font-medium truncate ${currentManual?.id === manual.id ? 'text-blue-700' : 'text-gray-800'}">
+              ${manual.title}
+            </p>
+          </td>
+          <td class="py-3 px-3 text-center">
+            ${manual.pdfFile 
+              ? '<span class="px-2 py-0.5 bg-blue-100 text-blue-600 rounded text-xs font-medium">PDF</span>'
+              : '<span class="text-gray-300">-</span>'
+            }
+          </td>
+        </tr>
+      `).join('');
+      
+      updateSelectAllCheckbox(pageManuals);
+    }
+
+    // 페이지네이션 렌더링
+    function renderPagination(filteredManuals) {
+      const totalPages = Math.ceil(filteredManuals.length / ITEMS_PER_PAGE);
+      const container = document.getElementById('pagination-container');
+      
+      if (totalPages <= 1) {
+        container.classList.add('hidden');
+        return;
+      }
+      
+      container.classList.remove('hidden');
+      
+      const startIdx = (currentPage - 1) * ITEMS_PER_PAGE + 1;
+      const endIdx = Math.min(currentPage * ITEMS_PER_PAGE, filteredManuals.length);
+      
+      document.getElementById('pagination-info').textContent = `${startIdx}-${endIdx} / ${filteredManuals.length}건`;
+      
+      const maxVisible = 5;
+      let start = Math.max(1, currentPage - Math.floor(maxVisible / 2));
+      let end = Math.min(totalPages, start + maxVisible - 1);
+      
+      if (end - start + 1 < maxVisible) {
+        start = Math.max(1, end - maxVisible + 1);
+      }
+      
+      let pages = [];
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+      
+      const buttonsHtml = `
+        <button
+          onclick="goToPage(1)"
+          ${currentPage === 1 ? 'disabled' : ''}
+          class="px-2 py-1 text-xs rounded ${currentPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}"
+        >«</button>
+        <button
+          onclick="goToPage(${Math.max(1, currentPage - 1)})"
+          ${currentPage === 1 ? 'disabled' : ''}
+          class="px-2 py-1 text-xs rounded ${currentPage === 1 ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}"
+        >‹</button>
+        ${pages.map(p => `
+          <button
+            onclick="goToPage(${p})"
+            class="px-2.5 py-1 text-xs rounded ${p === currentPage ? 'bg-blue-500 text-white' : 'text-gray-600 hover:bg-gray-100'}"
+          >${p}</button>
+        `).join('')}
+        <button
+          onclick="goToPage(${Math.min(totalPages, currentPage + 1)})"
+          ${currentPage === totalPages ? 'disabled' : ''}
+          class="px-2 py-1 text-xs rounded ${currentPage === totalPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}"
+        >›</button>
+        <button
+          onclick="goToPage(${totalPages})"
+          ${currentPage === totalPages ? 'disabled' : ''}
+          class="px-2 py-1 text-xs rounded ${currentPage === totalPages ? 'text-gray-300' : 'text-gray-600 hover:bg-gray-100'}"
+        >»</button>
+      `;
+      
+      document.getElementById('pagination-buttons').innerHTML = buttonsHtml;
+    }
+
+    // 페이지 이동
+    function goToPage(page) {
+      currentPage = page;
+      applyFilters();
+    }
+
+    // 총 개수 업데이트
+    function updateTotalCount(count) {
+      document.getElementById('total-count').textContent = count;
+    }
+
+    // 검색 초기화
+    function resetSearch() {
+      document.getElementById('search-manufacturer').value = '';
+      document.getElementById('search-category').value = '';
+      document.getElementById('search-subcategory').value = '';
+      document.getElementById('search-subcategory').disabled = true;
+      document.getElementById('search-keyword').value = '';
+      document.getElementById('sort-order').value = 'desc';
+      currentPage = 1;
+      applyFilters();
+    }
+
+    // 행 선택
+    function toggleRow(id) {
+      if (selectedRows.includes(id)) {
+        selectedRows = selectedRows.filter(i => i !== id);
+      } else {
+        selectedRows.push(id);
+      }
+      updateSelectedCount();
+      applyFilters();
+    }
+
+    // 전체 선택
+    function toggleSelectAll() {
+      const manuals = activeTab === 'user' ? userManuals : serviceManuals;
+      const filtered = getFilteredManuals(manuals);
+      const pageManuals = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+      const pageIds = pageManuals.map(m => m.id);
+      
+      const allSelected = pageIds.every(id => selectedRows.includes(id));
+      
+      if (allSelected) {
+        selectedRows = selectedRows.filter(id => !pageIds.includes(id));
+      } else {
+        selectedRows = [...new Set([...selectedRows, ...pageIds])];
+      }
+      
+      updateSelectedCount();
+      applyFilters();
+    }
+
+    // 전체 선택 체크박스 업데이트
+    function updateSelectAllCheckbox(pageManuals) {
+      const selectAll = document.getElementById('select-all');
+      const pageIds = pageManuals.map(m => m.id);
+      selectAll.checked = pageManuals.length > 0 && pageIds.every(id => selectedRows.includes(id));
+    }
+
+    // 선택 개수 업데이트
+    function updateSelectedCount() {
+      document.getElementById('selected-count').textContent = selectedRows.length;
+      const deleteBtn = document.getElementById('delete-btn');
+      
+      if (selectedRows.length > 0) {
+        deleteBtn.className = 'px-3 py-1.5 border rounded text-xs font-medium border-red-500 text-red-500 hover:bg-red-50';
+      } else {
+        deleteBtn.className = 'px-3 py-1.5 border rounded text-xs font-medium border-gray-300 text-gray-400';
+      }
+    }
+
+    // 필터링된 매뉴얼 가져오기
+    function getFilteredManuals(manuals) {
+      const manufacturer = document.getElementById('search-manufacturer').value;
+      const category = document.getElementById('search-category').value;
+      const subCategory = document.getElementById('search-subcategory').value;
+      const keyword = document.getElementById('search-keyword').value.toLowerCase();
+      const sortOrder = document.getElementById('sort-order').value;
+      
+      let filtered = manuals.filter(manual => {
+        const matchManufacturer = !manufacturer || manual.manufacturer === manufacturer;
+        const matchCategory = !category || manual.category === category;
+        const matchSubCategory = !subCategory || manual.subCategory === subCategory;
+        const matchKeyword = !keyword ||
+          manual.title.toLowerCase().includes(keyword) ||
+          manual.materialCode.toLowerCase().includes(keyword) ||
+          manual.keyword.toLowerCase().includes(keyword);
+        return matchManufacturer && matchCategory && matchSubCategory && matchKeyword;
+      });
+      
+      filtered.sort((a, b) => {
+        const dateA = new Date(a.createdAt);
+        const dateB = new Date(b.createdAt);
+        return sortOrder === 'asc' ? dateA - dateB : dateB - dateA;
+      });
+      
+      return filtered;
+    }
+
+    // 매뉴얼 선택
+    function selectManual(id) {
+      const manuals = activeTab === 'user' ? userManuals : serviceManuals;
+      const manual = manuals.find(m => m.id === id);
+      if (manual) {
+        openDetailPanel(manual);
+      }
+    }
+
+    // 상세 패널 열기
+    function openDetailPanel(manual) {
+      const listPanel = document.getElementById('list-panel');
+      const detailPanel = document.getElementById('detail-panel');
+      
+      listPanel.className = 'w-2/3 bg-white flex flex-col h-full transition-all';
+      detailPanel.classList.remove('hidden');
+      
+      if (manual) {
+        // 수정 모드
+        currentManual = { ...manual };
+        document.getElementById('detail-title').textContent = '매뉴얼 수정';
+        document.getElementById('detail-subtitle').textContent = manual.title;
+        document.getElementById('detail-delete-btn').classList.remove('hidden');
+        document.getElementById('detail-delete-placeholder').innerHTML = '';
+        document.getElementById('detail-save-btn').textContent = '수정';
+        
+        // 폼 채우기
+        document.getElementById('detail-manufacturer').value = manual.manufacturer;
+        document.getElementById('detail-title-input').value = manual.title;
+        document.getElementById('detail-category').value = manual.category;
+        updateDetailSubCategories();
+        document.getElementById('detail-subcategory').value = manual.subCategory;
+        document.getElementById('detail-materialcode').value = manual.materialCode;
+        document.getElementById('detail-keyword').value = manual.keyword;
+        
+        // PDF 파일
+        if (manual.pdfFile) {
+          document.getElementById('pdf-file-display').classList.remove('hidden');
+          document.getElementById('pdf-empty').classList.add('hidden');
+          document.getElementById('pdf-filename').textContent = manual.pdfFile;
+        } else {
+          document.getElementById('pdf-file-display').classList.add('hidden');
+          document.getElementById('pdf-empty').classList.remove('hidden');
+        }
+      } else {
+        // 신규 등록 모드
+        currentManual = { id: null };
+        document.getElementById('detail-title').textContent = '신규 매뉴얼 등록';
+        document.getElementById('detail-subtitle').textContent = '';
+        document.getElementById('detail-delete-btn').classList.add('hidden');
+        document.getElementById('detail-delete-placeholder').innerHTML = '<div></div>';
+        document.getElementById('detail-save-btn').textContent = '등록';
+        
+        // 폼 초기화
+        document.getElementById('detail-manufacturer').value = '';
+        document.getElementById('detail-title-input').value = '';
+        document.getElementById('detail-category').value = '';
+        document.getElementById('detail-subcategory').value = '';
+        document.getElementById('detail-subcategory').disabled = true;
+        document.getElementById('detail-materialcode').value = '';
+        document.getElementById('detail-keyword').value = '';
+        
+        document.getElementById('pdf-file-display').classList.add('hidden');
+        document.getElementById('pdf-empty').classList.remove('hidden');
+      }
+    }
+
+    // 상세 패널 닫기
+    function closeDetailPanel() {
+      const listPanel = document.getElementById('list-panel');
+      const detailPanel = document.getElementById('detail-panel');
+      
+      listPanel.className = 'w-full bg-white flex flex-col h-full transition-all';
+      detailPanel.classList.add('hidden');
+      
+      currentManual = null;
+      applyFilters();
+    }
+
+    // 삭제 선택된 항목
+    function deleteSelected() {
+      if (selectedRows.length === 0) return;
+      
+      if (confirm(`선택한 ${selectedRows.length}개의 매뉴얼을 삭제하시겠습니까?`)) {
+        selectedRows = [];
+        if (currentManual && selectedRows.includes(currentManual.id)) {
+          closeDetailPanel();
+        }
+        updateSelectedCount();
+        applyFilters();
+        alert('삭제되었습니다.');
+      }
+    }
+
+    // 현재 매뉴얼 삭제
+    function deleteCurrentManual() {
+      if (!currentManual || !currentManual.id) return;
+      
+      if (confirm('이 매뉴얼을 삭제하시겠습니까?')) {
+        closeDetailPanel();
+        alert('삭제되었습니다.');
+      }
+    }
+
+    // 저장
+    function saveManual() {
+      const manufacturer = document.getElementById('detail-manufacturer').value;
+      const title = document.getElementById('detail-title-input').value;
+      const category = document.getElementById('detail-category').value;
+      
+      if (!manufacturer || !title || !category) {
+        alert('필수 항목을 입력해주세요.');
+        return;
+      }
+      
+      if (currentManual && currentManual.id) {
+        alert('매뉴얼이 수정되었습니다.');
+      } else {
+        alert('새 매뉴얼이 등록되었습니다.');
+      }
+      
+      closeDetailPanel();
+    }
+
+    // PDF 파일 제거
+    function removePdfFile() {
+      document.getElementById('pdf-file-display').classList.add('hidden');
+      document.getElementById('pdf-empty').classList.remove('hidden');
+      if (currentManual) {
+        currentManual.pdfFile = '';
+      }
+    }
+
+    // 파일 선택
+    function handleFileSelect(event) {
+      const file = event.target.files[0];
+      if (file) {
+        document.getElementById('pdf-file-display').classList.remove('hidden');
+        document.getElementById('pdf-empty').classList.add('hidden');
+        document.getElementById('pdf-filename').textContent = file.name;
+        if (currentManual) {
+          currentManual.pdfFile = file.name;
+        }
+      }
+    }
+
+    // 초기화 실행
+    init();
+  </script>
+</body>
+</html>
